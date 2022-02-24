@@ -1,0 +1,736 @@
+---
+title: "Lab 2"
+author: "Antonio D'Alessandro"
+date: "2/15/2022"
+output: pdf_document
+---
+
+# More Basic R Skills
+
+* Create a function `my_reverse` which takes as required input a vector `v` and returns the vector in reverse where the first entry is the last entry, etc. No function calls are allowed inside your function otherwise that would defeat the purpose of the exercise! (Yes, there is a base R function that does this called `rev`). Use `head` on `v` and `tail` on `my_reverse(v)` to verify it works.
+
+```{r}
+
+
+V <- 1:100
+my_reverse <- function(v) {
+  n <- length(v)
+  vr <- array(NA,n)
+  for (i in 1:n){
+    vr[i] <- v[n-i+1]
+  }
+  vr
+}
+
+```
+
+* Create a function `flip_matrix` which takes as required input a matrix, an argument `dim_to_rev` that returns the matrix with the rows in reverse order or the columns in reverse order depending on the `dim_to_rev` argument. Let the default be the dimension of the matrix that is greater. If the number of rows 
+
+```{r}
+
+flip_matrix <- function(X, dim_to_rev = NA){
+  nr <- nrow(X)
+  nc <- ncol(X)
+  if(is.na(dim_to_rev)){
+    if(nr==nc){
+      stop('unspecified dim_to_rev and equals rows and columns')
+    }
+    if(nr > nc){
+      dim_to_rev <- 'r'
+    } else{dim_to_rev <- 'c'}
+    
+  }
+  if(dim_to_rev == 'r'){
+    X[nr:1,]
+  }else if(dim_to_rev=='c'){
+    X[,nc:1]
+  }else{
+    stOp('dim_to_rev needs to be r or c')
+  }
+
+    
+}
+
+```
+
+* Create a list named `my_list` with keys "A", "B", ... where the entries are arrays of size 1, 2 x 2, 3 x 3 x 3, etc. Fill the array with the numbers 1, 2, 3, etc. Make 8 entries according to this sequence.
+
+```{r}
+
+my_list <- list()
+for (i in 1:8){
+  my_list[[LETTERS[i]]] <- array(1:(i)^i, dim = rep(i,i))  
+  
+}
+
+
+```
+
+Run the following code:
+
+```{r}
+
+lapply(my_list, object.size)
+
+```
+
+Use `?object.size` to read about what these functions do. Then explain the output you see above. For the later arrays, does it make sense given the dimensions of the arrays?
+
+The output is a list of the size in bytes of each object in the list my_list. Since the size of each array stored in my_list is growing exponentionally it makes sense that the later arrays are blowing up in size. 
+
+Now cleanup the namespace by deleting all stored objects and functions:
+
+```{r}
+
+rm(list=ls())
+
+```
+
+## A little about strings
+
+* Use the `strsplit` function and `sample` to put the sentences in the string `lorem` below in random order. You will also need to manipulate the output of `strsplit` which is a list. You may need to learn basic concepts of regular expressions.
+
+```{r}
+lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi posuere varius volutpat. Morbi faucibus ligula id massa ultricies viverra. Donec vehicula sagittis nisi non semper. Donec at tempor erat. Integer dapibus mi lectus, eu posuere arcu ultricies in. Cras suscipit id nibh lacinia elementum. Curabitur est augue, congue eget quam in, scelerisque semper magna. Aenean nulla ante, iaculis sed vehicula ac, finibus vel arcu. Mauris at sodales augue. "
+
+#paste(sample(paste0(strsplit(lorem, split = '\\.\\s')[[1]], ". "))), collapse ='')
+
+
+b <- strsplit(lorem, split = '\\.\\s')
+
+randb <- sample(unlist(b))
+
+paste(randb, collapse ='. ')
+
+```
+
+You have a set of names divided by gender (M / F) and generation (Boomer / GenX / Millenial):
+
+* M / Boomer      "Theodore, Bernard, Gene, Herbert, Ray, Tom, Lee, Alfred, Leroy, Eddie"
+* M / GenX        "Marc, Jamie, Greg, Darryl, Tim, Dean, Jon, Chris, Troy, Jeff"
+* M / Millennial  "Zachary, Dylan, Christian, Wesley, Seth, Austin, Gabriel, Evan, Casey, Luis"
+* F / Boomer      "Gloria, Joan, Dorothy, Shirley, Betty, Dianne, Kay, Marjorie, Lorraine, Mildred"
+* F / GenX        "Tracy, Dawn, Tina, Tammy, Melinda, Tamara, Tracey, Colleen, Sherri, Heidi"
+* F / Millennial  "Samantha, Alexis, Brittany, Lauren, Taylor, Bethany, Latoya, Candice, Brittney, Cheyenne"
+
+Create a list-within-a-list that will intelligently store this data.
+
+```{r}
+
+
+my_list<- list()
+my_list$M <- list()
+my_list$F <- list()
+
+my_list$M$Millennial <- strsplit("Zachary, Dylan, Christian, Wesley, Seth, Austin, Gabriel, Evan, Casey, Luis", split = ", ")[[1]]
+
+my_list$M$GenX <- strsplit("Marc, Jamie, Greg, Darryl, Tim, Dean, Jon, Chris, Troy, Jeff", split = ", ")[[1]]
+
+my_list$M$Boomer <- strsplit("Theodore, Bernard, Gene, Herbert, Ray, Tom, Lee, Alfred, Leroy, Eddie", split = ", ")[[1]]
+
+my_list$F$Millennial <- strsplit("Samantha, Alexis, Brittany, Lauren, Taylor, Bethany, Latoya, Candice, Brittney, Cheyenne", split = ", ")[[1]]
+
+my_list$F$GenX <- strsplit("Tracy, Dawn, Tina, Tammy, Melinda, Tamara, Tracey, Colleen, Sherri, Heidi", split = ", ")[[1]]
+
+my_list$F$Boomer <- strsplit("Gloria, Joan, Dorothy, Shirley, Betty, Dianne, Kay, Marjorie, Lorraine, Mildred", split = ", ")[[1]]
+
+my_list
+
+
+```
+
+## Dataframe creation
+
+
+Imagine you are running an experiment with many manipulations. You have 14 levels in the variable "treatment" with levels a, b, c, etc. For each of those manipulations you have 3 submanipulations in a variable named "variation" with levels A, B, C. Then you have "gender" with levels M / F. Then you have "generation" with levels Boomer, GenX, Millenial. Then you will have 6 runs per each of these groups. In each set of 6 you will need to select a name without duplication from the appropriate set of names (from the last question). Create a data frame with columns treatment, variation, gender, generation, name and y that will store all the unique unit information in this experiment. Leave y empty because it will be measured as the experiment is executed. Hint, we've been using the `rep` function using the `times` argument. Look at the `each` argument using `?rep`.
+
+```{r}
+
+n <- 14 * 3 * 2 * 3 * 6
+treatments <- letters[1:14]
+variations <- c('A','B','C')
+genders <- c('M','F')
+generations <- c('Millennial','GenX','Boomer')
+
+X = data.frame(
+  
+  treatment = rep(treatments, each = 6*3*2*3),
+  variation = rep(rep(variations, each = 6*3*2), times=14),
+  gender = rep(rep(genders, each = 18), times=3*14),
+  generation = rep(rep(generations, each = 6), times=2*3*14),
+  name = NA, 
+  y = NA
+  
+)
+
+View(X)
+
+for (treatment in treatments){
+ for (variation in variations){
+   for (gender in genders){
+     for (generation in generations) {
+
+      X[X$treatment == treatment & X$variation == variation & X$gender == gender & X&generation == generation, 'name' ] <- sample(my_list[[gender]][[generation]], size =6)
+     
+      }
+    }
+  } 
+}
+
+ 
+
+
+```
+
+## Packages
+
+Install the package `pacman` using regular base R.
+
+```{r}
+
+install.packages("pacman")
+
+```
+
+
+First, install the package `testthat` (a widely accepted testing suite for R) from https://github.com/r-lib/testthat using `pacman`. If you are using Windows, this will be a long install, but you have to go through it for some of the stuff we are doing in class. LINUX (or MAC) is preferred for coding. If you can't get it to work, install this package from CRAN (still using `pacman`), but this is not recommended long term.
+
+```{r}
+
+pacman::p_load(testthat)
+
+```
+
+* Create vector `v` consisting of all numbers from -100 to 100 and test using the second line of code su
+
+```{r}
+
+v= seq(-100, 100)
+
+expect_equal(v, -100 : 101)
+
+```
+
+If there are any errors, the `expect_equal` function will tell you about them. If there are no errors, then it will be silent.
+
+Test the `my_reverse` function using the following code:
+
+```{r}
+
+
+expect_equal(my_reverse(v), rev(v))
+
+expect_equal(my_reverse(c("A", "B", "C")), c("C", "B", "A"))
+
+
+```
+
+## Basic Binary Classification Modeling
+
+* Load the famous `iris` data frame into the namespace. Provide a summary of the columns using the `skim` function in package `skimr` and write a few descriptive sentences about the distributions using the code below in English.
+
+```{r}
+
+data('iris')
+
+
+skimr::skim(iris)
+
+
+```
+
+This dataset is 150 sample measurements taken from iris flowers (50 from each species). The measurements are in centimeters for sepal width and length as well as petal width and length. The distribution of sepal lengths has the highest mean (5.84cm) across all three species while the petal length is lower on average (3.76cm), it has a greater range in values with sd (1.77cm). The mean and median compare closely with the exception of petal length with mean 3.76cm vs. median 4.35.
+
+The outcome / label / response is `Species`. This is what we will be trying to predict. However, we only care about binary classification between "setosa" and "versicolor" for the purposes of this exercise. Thus the first order of business is to drop one class. Let's drop the data for the level "virginica" from the data frame.
+
+```{r}
+
+iris[1:100,]
+
+#or you could do 
+
+new_data <- iris[iris[,'Species'] != 'virginica', ]
+
+
+
+```
+
+Now create a vector `y` that is length the number of remaining rows in the data frame whose entries are 0 if "setosa" and 1 if "versicolor".
+
+```{r}
+
+new_data$y <- ifelse(new_data$Species == 'setosa',0,1)
+
+
+```
+
+* Write a function `mode` returning the sample mode of a vector of numeric values. Try not to look in the class notes.
+
+```{r}
+
+ mode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+
+```
+
+* Fit a threshold model to `y` using the feature `Sepal.Length`. Write your own code to do this. What is the estimated value of the threshold parameter? Save the threshold value as `threshold`. 
+
+```{r}
+
+
+View(new_data)
+
+n <- nrow(new_data)
+
+errors_per_parameter <- matrix(NA, nrow = n, ncol = 2)
+
+y_bin <- new_data$y == 0 
+
+colnames(errors_per_parameter) <- c("threshold", "errors")
+
+
+
+for (i in 1:n){
+
+  threshold = new_data$Sepal.Length[i]
+  num_errors = sum((new_data$Sepal.Length > threshold) == y_bin)
+  errors_per_parameter[i, ] = c(threshold, num_errors)
+
+}
+
+
+threshold <- unique(errors_per_parameter[order(errors_per_parameter[,2], decreasing = FALSE),])[1]
+
+
+```
+
+What is the total number of errors this model makes?
+
+```{r}
+
+sum(unique(errors_per_parameter)[,2])
+
+```
+
+Does the threshold model's performance make sense given the following summaries:
+
+```{r}
+
+threshold
+
+summary(iris[iris$Species == "setosa", "Sepal.Length"])
+
+summary(iris[iris$Species == "versicolor", "Sepal.Length"])
+
+```
+
+TO-DO: Yes. We can see from the summary that the average setosa sepal length is 5 with a max of 5.8 so it would stand to reason that the best threshold choice (assuming we are trying to predict setosa) would be somewhere between those two values. It would probably be more helpful to see a histogram of each setosa sepal length but a threshold choice of 5.4 is within the intuitvie range. 
+
+Create the function `g` explicitly that can predict `y` from `x` being a new `Sepal.Length`.
+
+```{r}
+
+
+g = function(x){
+  
+  if(x <= threshold){ 
+    y_hat <- 0
+    }else y_hat <- 1
+  
+  print(y_hat)  
+}
+
+g(4)
+
+```
+
+
+## Perceptron
+
+You will code the "perceptron learning algorithm" for arbitrary number of features p. Take a look at the comments above the function. Respect the spec below:
+
+```{r}
+#' TO-DO: perceptron_learning_algorithm 
+#'
+#' TO-DO: It finds a line that maximizes the size of the "wedge" a way of seperating two response variables into distinct groups by a line. 
+#'
+#' @param Xinput      TO-DO: A matrix with our training data size n x p
+#' @param y_binary    TO-DO: A vector containing the response for our each measurement in our training data, size of vector = n 
+#' @param MAX_ITER    TO-DO: The max number of times we wan't to run  the algorithm looking for the seperation line, if can't find before this number then stop looking. 
+#' @param w           TO-DO: the vector containing the weights for the slope and intercept of the "best" line the algorithm found. 
+#'
+#' @return            The computed final parameter (weight) as a vector of length p + 1
+perceptron_learning_algorithm = function(Xinput, y_binary, MAX_ITER = 1000, w = NULL){
+  
+  
+  
+  if(is.null(w)){
+  
+  w <- rep(0,ncol(Xinput)+1)
+  
+  }
+  
+  Xinput <- cbind(1,Xinput)
+  
+  for (k in 1:MAX_ITER){
+    
+    yhat_vec <- as.numeric( Xinput %*% w > 0)
+    w_0 <- w
+    
+    for (i in 1:nrow(Xinput)){
+     w <- w + (y_binary[i] - yhat_vec[i])*Xinput[i,] 
+    }
+    
+    if(all(w == w_0)){
+      break
+      }
+    }
+  w
+}
+
+
+
+
+
+```
+
+To understand what the algorithm is doing - linear "discrimination" between two response categories, we can draw a picture. First let's make up some very simple training data D.
+
+```{r}
+
+
+Xy_simple = data.frame(
+ response = factor(c(0, 0, 0, 1, 1, 1)), #nominal
+ first_feature = c(1, 1, 2, 3, 3, 4),    #continuous
+ second_feature = c(1, 2, 1, 3, 4, 3)    #continuous
+)
+
+View(Xy_simple)
+```
+
+We haven't spoken about visualization yet, but it is important we do some of it now. Thus, I will write this code for you and you will just run it. First we load the visualization library we're going to use:
+
+```{r}
+pacman::p_load(ggplot2)
+```
+
+We are going to just get some plots and not talk about the code to generate them as we will have a whole unit on visualization using `ggplot2` in the future.
+
+Let's first plot y by the two features so the coordinate plane will be the two features and we use different colors to represent the third dimension, y.
+
+```{r}
+simple_viz_obj = ggplot(Xy_simple, aes(x = first_feature, y = second_feature, color = response)) + 
+  geom_point(size = 5)
+simple_viz_obj
+
+```
+
+The picture is a visualization of our six training data points. For example the red point in the bottom left (1,1) corresponds to a binary response of 0 given a feature one (x_1) input of 1 and a feature two (x_2) input of 1. In contrast the green point at (4,3) would represent a binary reponse of 1 given feature x_1 input of 4 and feature x_2 input of 3. 
+
+Now, let us run the algorithm and see what happens:
+
+```{r}
+w_vec_simple_per = perceptron_learning_algorithm(
+  cbind(Xy_simple$first_feature, Xy_simple$second_feature),
+  as.numeric(Xy_simple$response == 1))
+w_vec_simple_per
+```
+
+Explain this output. What do the numbers mean? What is the intercept of this line and the slope? You will have to do some algebra.
+
+This is the line that the algorithm found which linearly separates the responses of the training data into two distince categories. The intercept is 4.25 and the slope is -1.  
+
+
+```{r}
+
+simple_perceptron_line = geom_abline(
+    intercept = -w_vec_simple_per[1] / w_vec_simple_per[3], 
+    slope = -w_vec_simple_per[2] / w_vec_simple_per[3], 
+    color = "orange")
+simple_viz_obj + simple_perceptron_line
+
+```
+
+Explain this picture. Why is this line of separation not "satisfying" to you?
+
+The line is not satisfying because it is not the best line seperating the two groups of training data. It is not maximizing the "wedge" or distance between either grouping. You can see from the image it is closer to the red data
+points vs the blue, when optimally the distance from the line to each group should be as close to the same as possible. 
+
+For extra credit, program the maximum-margin hyperplane perceptron that provides the best linear discrimination model for linearly separable data. Make sure you provide ROxygen documentation for this function.
+
+```{r}
+#come back to this one
+```
+
+
+## Support Vector Machine vs. Perceptron
+
+We recreate the data from the previous lab and visualize it:
+
+```{r}
+pacman::p_load(ggplot2)
+Xy_simple = data.frame(
+ response = factor(c(0, 0, 0, 1, 1, 1)), #nominal
+ first_feature = c(1, 1, 2, 3, 3, 4),    #continuous
+ second_feature = c(1, 2, 1, 3, 4, 3)    #continuous
+)
+simple_viz_obj = ggplot(Xy_simple, aes(x = first_feature, y = second_feature, color = response)) + 
+  geom_point(size = 5)
+simple_viz_obj
+```
+
+Use the `e1071` package to fit an SVM model to the simple data. Use a formula to create the model, pass in the data frame, set kernel to be `linear` for the linear SVM and don't scale the covariates. Call the model object `svm_model`. Otherwise the remaining code won't work.
+
+```{r}
+pacman::p_load(e1071)
+svm_model = svm(
+  formula = Xy_simple$response, 
+  x = Xy_simple, 
+  kernel = "linear", 
+  scale = FALSE
+)
+```
+
+and then use the following code to visualize the line in purple:
+
+```{r}
+w_vec_simple_svm = c(
+  svm_model$rho, #the b term
+  -t(svm_model$coefs) %*% cbind(Xy_simple$first_feature, Xy_simple$second_feature)[svm_model$index, ] # the other terms
+)
+simple_svm_line = geom_abline(
+    intercept = -w_vec_simple_svm[1] / w_vec_simple_svm[3], 
+    slope = -w_vec_simple_svm[2] / w_vec_simple_svm[3], 
+    color = "purple")
+simple_viz_obj + simple_svm_line
+```
+
+Source the `perceptron_learning_algorithm` function from lab 2. Then run the following to fit the perceptron and plot its line in orange with the SVM's line:
+
+```{r}
+w_vec_simple_per = perceptron_learning_algorithm(
+  cbind(Xy_simple$first_feature, Xy_simple$second_feature),
+  as.numeric(Xy_simple$response == 1)
+)
+simple_perceptron_line = geom_abline(
+    intercept = -w_vec_simple_per[1] / w_vec_simple_per[3], 
+    slope = -w_vec_simple_per[2] / w_vec_simple_per[3], 
+    color = "orange")
+simple_viz_obj + simple_perceptron_line + simple_svm_line
+```
+
+Is this SVM line a better fit than the perceptron?
+
+Yes the SVM is better, as you can see in the above plot it is closer to maximizing the "wedge" as we discussed in lecture. 
+
+Now write pseuocode for your own implementation of the linear support vector machine algorithm using the Vapnik objective function we discussed.
+
+Note there are differences between this spec and the perceptron learning algorithm spec in question #1. You should figure out a way to respect the `MAX_ITER` argument value. 
+
+
+```{r}
+#' Support Vector Machine 
+#
+#' This function implements the hinge-loss + maximum margin linear support vector machine algorithm of Vladimir Vapnik (1963).
+#'
+#' @param Xinput      The training data features as an n x p matrix.
+#' @param y_binary    The training data responses as a vector of length n consisting of only 0's and 1's.
+#' @param MAX_ITER    The maximum number of iterations the algorithm performs. Defaults to 5000.
+#' @param lambda      A scalar hyperparameter trading off margin of the hyperplane versus average hinge loss.
+#'                    The default value is 1.
+#' @return            The computed final parameter (weight) as a vector of length p + 1
+linear_svm_learning_algorithm = function(Xinput, y_binary, MAX_ITER = 5000, lambda = 0.1){
+  #TO-DO: write pseudo code in comments
+  #' 
+  #' We want to minmized hinge loss while maximizing the size of the margin 
+  #'
+  #' Initialize the weight vector w and scalar b which will be the "intercept"
+  #'
+  #' First check if our constraint is satisfied for each y_i in y_binary -> (y_i-1/2) x (t(w) %*% x_i + b) >= 1/2
+  #'
+  #' If the above is true then our loss function L = lambda modulous(w)^2 and partial L / partial w = 2lambda(w)  while partial L / partial b = 0
+  #'
+  #' Else we define the full loss function as written in lecture from Vapnik then take the parial deriviates with respect to w and b 
+  #'
+  #' Finally we want to update the w and b based on the above computations w = w - partial L / parial w and b = b - partial L / partial b  
+  #' 
+  #' return the w and b which minimize the above  
+}
+```
+
+
+If you are enrolled in 342W the following is extra credit but if you're enrolled in a masters section, the following is required. Write the actual code. You may want to take a look at the `optimx` package. You can feel free to define another function (a "private" function) in this chunk if you wish. R has a way to create public and private functions, but I believe you need to create a package to do that (beyond the scope of this course).
+
+```{r}
+#' This function implements the hinge-loss + maximum margin linear support vector machine algorithm of Vladimir Vapnik (1963).
+#'
+#' @param Xinput      The training data features as an n x p matrix.
+#' @param y_binary    The training data responses as a vector of length n consisting of only 0's and 1's.
+#' @param MAX_ITER    The maximum number of iterations the algorithm performs. Defaults to 5000.
+#' @param lambda      A scalar hyperparameter trading off margin of the hyperplane versus average hinge loss.
+#'                    The default value is 1.
+#' @return            The computed final parameter (weight) as a vector of length p + 1
+linear_svm_learning_algorithm = function(Xinput, y_binary, MAX_ITER = 5000, lambda = 0.1){
+  
+  b <- 0
+  w <- rep(0,ncol(Xinput))
+  partial_w <- 0
+  partial_b <- 0
+  
+  if ((y_binary-.5) * (t*(w) %*% Xinput - b) >= .5){
+    partial_w <- 2*lambda*(norm(x)^2)
+    partial_b <- 0
+  }else{
+    partial_w <- 2*lambda*w - (1/nrow(Xinput))*sum(t(y_bianry) %*% Xinput ) #check NN for how he did the row operations
+    partial_b <- (1/nrow(Xinput))*sum(y_binary)
+  }
+  
+}
+```
+
+If you wrote code (the extra credit), run your function using the defaults and plot it in brown vis-a-vis the previous model's line:
+
+```{r}
+svm_model_weights = linear_svm_learning_algorithm(X_simple_feature_matrix, y_binary)
+my_svm_line = geom_abline(
+    intercept = svm_model_weights[1] / svm_model_weights[3],#NOTE: negative sign removed from intercept argument here
+    slope = -svm_model_weights[2] / svm_model_weights[3], 
+    color = "brown")
+simple_viz_obj  + my_svm_line
+```
+
+Is this the same as what the `e1071` implementation returned? Why or why not?
+
+It is not going to be the same. The lambda value and number of iterations from our function probably differs from what we were using in our own function. 
+
+## Multinomial Classification using KNN
+
+Write a k = 1 nearest neighbor algorithm using the Euclidean distance function. The following comments are standard "Roxygen" format for documentation. Hopefully, we will get to packages at some point and we will go over this again. It is your job also to fill in this documentation.
+
+```{r}
+#' TO-DO: 1_NN 
+#'
+#' This function takes in a input x_star, computes the distances based on the euclidean distance function between x_star and all points in the training data. It then sorts them and returns the #' x_i in the training data which is closest. Finally it takes the response associated with x_i called y_i and returns y_i as the prediction y_hat_star
+#' 
+#'
+#' @param Xinput      This is our training data features encoded in a n x p sized matrix
+#' @param y_binary    This is the training data responses as vector of length n composed of 0's and 1's
+#' @param Xtest       This is a matrix of size k x p with the k points we wish to run through the NN algorithm and predict on
+#' @return            will return the predicted response y_hat_star based on the distances computed by the function
+nn_algorithm_predict = function(Xinput, y_binary, Xtest){
+  
+  y_hat <- array(NA, nrow(Xtest))
+  
+  for(i_star in 1:nrow(Xtest)){
+  
+  y_hat[i_star] <- y_binary[which.min(rowSums(t(t(Xinput)-Xtest[i_star,])^2))]  
+  
+  }
+  y_hat
+  # 
+  # distance <- sqrt((Xtest-Xinput)^2)
+  # y_hat_star <- y_binary[match(min(distance), distance)]
+  # print(y_hat_star)
+}
+```
+
+Write a few tests to ensure it actually works:
+
+```{r}
+
+X <- c(1,2,3,4,5,6,7,8,9,10)
+Y <- c(1,0,0,1,0,1,1,0,0,1)
+vals <- sample(1:10, replace=TRUE,size=100)
+Xtest <- matrix(vals, nrow=10, ncol=10)
+nn_algorithm_predict(X,Y,Xtest)
+
+```
+
+We now add an argument `d` representing any legal distance function to the `nn_algorithm_predict` function. Update the implementation so it performs NN using that distance function. Set the default function to be the Euclidean distance in the original function. Also, alter the documentation in the appropriate places.
+
+```{r}
+
+#' TO-DO: 1_NN 
+#'
+#' This function takes in a input x_star, computes the distances based on the specified distance function d between x_star and all points in the training data. If no function is provided the    #' d function  defaults to the euclidean distance. It then sorts them and returns the x_i in the training data which is closest. Finally it takes the response associated with x_i called y_i and #' returns y_i as the prediction y_hat_star
+#' 
+#'
+#' @param Xinput      This is our training data features encoded in a n x p sized matrix
+#' @param d           This is the distance function used to compute the distances between x_star and the training data, default is the euclidean metric
+#' @param y_binary    This is the training data responses as vector of length n composed of 0's and 1's
+#' @param Xtest       This is a matrix of size k x p with the k points we wish to run through the NN algorithm and predict on
+#' @return            will return the predicted response y_hat_star based on the distances computed by the function
+
+nn_algorithm_predict = function(Xinput, y_binary, d = NULL, Xtest){
+  
+  
+  if(is.null(d)){
+    d = function(x_i, x_star){sum(x_i-x_star)^2}
+    
+  }
+  
+  y_hat <- array(NA, nrow(Xtest))
+  
+  for(istar in 1:nrow(Xtest)){
+    dists <- array(NA, nrow(Xinput))
+      for(i in 1:nrow(Xinput)){
+        dists[i] <- d(Xinput[i,], Xtest[istar,])
+      }
+    y_hat[istar] <- y_binary[which.min(dists)]
+    }
+  y_hat
+  
+}
+
+
+
+```
+
+For extra credit (unless you're a masters student), add an argument `k` to the `nn_algorithm_predict` function and update the implementation so it performs KNN. In the case of a tie, choose yhat randomly. Set the default `k` to be the square root of the size of D which is an empirical rule-of-thumb popularized by the "Pattern Classification" book by Duda, Hart and Stork (2007). Also, alter the documentation in the appropriate places.
+
+```{r}
+
+#' TO-DO: K_NN 
+#'
+#' This function takes in a input x_star, computes the distances based on the specified distance function d between x_star and all points in the training data. If no function is provided the    #' d function  defaults to the euclidean distance. It then sorts them and returns the k x_i data points in the training data which are the closest. Finally we return the mode of the k-list of
+#' associated responses as the prediction. 
+#'
+#' @param Xinput      This is our training data features encoded in a n x p sized matrix
+#' @param d           This is the distance function used to compute the distances between x_star and the training data, default is the euclidean metric
+#' @param k           This is the number of "nearest" neighbors to consider
+#' @param y_binary    This is the training data responses as vector of length n composed of 0's and 1's
+#' @param Xtest       This is the k x p matrix with the k x_stars we wish to run through the algroithm and predict on 
+#' @return            will return the predicted response y_hat_star based on the distances computed by the function
+
+nn_algorithm_predict = function(Xinput, y_binary, d = NULL, Xtest, k=NULL){
+  
+  if(is.null(k)){k=1}
+  
+  if(is.null(d)){
+    d = function(x_i, x_star){sum(x_i-x_star)^2}
+    
+  }
+  
+  y_hat <- array(NA, nrow(Xtest))
+  
+  for(istar in 1:nrow(Xtest)){
+    dists <- array(NA, nrow(Xinput))
+      for(i in 1:nrow(Xinput)){
+        dists[i] <- d(Xinput[i,], Xtest[istar,])
+      }
+    
+    y_hat[istar] <- mode(y_binary[order(dists)[1:k]]) #using mode function from earlier in the lab assignment
+    
+
+    }
+  y_hat
+  
+}
+
+
+
+
+```
