@@ -1,0 +1,381 @@
+---
+title: "Lab 4"
+author: "Antonio D'Alessandro"
+output: pdf_document
+date: 
+---
+
+Load up the famous iris dataset. We are going to do a different prediction problem. Imagine the only input x is Species and you are trying to predict y which is Petal.Length. A reasonable prediction is the average petal length within each Species. Prove that this is the OLS model by fitting an appropriate `lm` and then using the predict function to verify.
+
+```{r}
+
+data(iris)
+
+mod <- lm(Petal.Length ~ Species, iris)
+table(iris$Species)
+predict(mod, newdata = data.frame(Species = c('setosa','versicolor','virginica')))
+
+mean(iris$Petal.Length[iris$Species=='setosa'])
+mean(iris$Petal.Length[iris$Species=='versicolor'])
+mean(iris$Petal.Length[iris$Species=='virginica'])
+
+
+```
+
+Construct the design matrix with an intercept, X without using `model.matrix`.
+
+```{r}
+#set virginica as reference category
+X <- cbind(1,iris$Species == 'setosa',iris$Species == 'versicolor')
+X
+```
+
+Find the hat matrix H for this regression.
+
+```{r}
+
+#should be nxn
+H <- X %*% solve(t(X) %*% X) %*% t(X) 
+
+
+```
+
+Verify this hat matrix is symmetric using the `expect_equal` function in the package `testthat`.
+
+```{r}
+
+pacman::p_load(testthat)
+
+expect_equal(t(H),H) 
+
+```
+
+Verify this hat matrix is idempotent using the `expect_equal` function in the package `testthat`.
+
+```{r}
+
+expect_equal(H,H%*%H)
+
+```
+
+Using the `diag` function, find the trace of the hat matrix.
+
+```{r}
+
+sum(diag(H))
+
+```
+
+It turns out the trace of a hat matrix is the same as its rank! But we don't have time to prove these interesting and useful facts..
+
+For masters students: create a matrix X-perpendicular.
+
+```{r}
+
+150x147 matrix that spans the 150x150 space
+
+
+
+```
+
+Using the hat matrix, compute the yhat vector and using the projection onto the residual space, compute the e vector and verify they are orthogonal to each other.
+
+```{r}
+
+y <- iris$Petal.Length 
+yhat <- H %*% y
+evec <- y - yhat
+t(evec) %*% yhat
+
+```
+
+Compute SST, SSR and SSE and R^2 and then show that SST = SSR + SSE.
+
+```{r}
+
+ybar <- mean(y)
+
+SST <- sum((y-ybar)^2)
+SSR <- sum((yhat-ybar)^2)
+SSE <- sum((evec)^2)
+Rsq <- SSR / SST
+
+expect_equal(SSR + SSE , SST)
+
+
+
+```
+
+Find the angle theta between y - ybar 1 and yhat - ybar 1 and then verify that its cosine squared is the same as the R^2 from the previous problem.
+
+```{r}
+
+u <- y - ybar
+v <- yhat - ybar
+
+normsqr <- function(d){
+  sum(d^2)
+}
+
+norm<-function(d){
+  sqrt(normsqr(d))
+}
+
+theta <- acos(norm(t(u)%*%v)/(norm(u)*norm(v)))
+theta
+cos(theta)^2
+
+expect_equal(cos(theta)^2, Rsq)
+
+```
+
+Project the y vector onto each column of the X matrix and test if the sum of these projections is the same as yhat.
+
+```{r}
+
+yhatprime <- rep(0,length(yhat))
+
+for(j in 1:ncol(X)){
+  yhatprime <- yhatprime + (X[,j] %*% t(X[,j]) / normsqr(X[,j])) %*% y
+  
+}
+
+
+```
+
+Construct the design matrix without an intercept, X, without using `model.matrix`.
+
+```{r}
+
+X <- cbind(as.numeric(iris$Species =='virginica'), 
+           as.numeric(iris$Species == 'setosa') , 
+           as.numeric(iris$Species == 'versicolor'))
+
+```
+
+Find the OLS estimates using this design matrix. It should be the sample averages of the petal lengths within species.
+
+```{r}
+
+b <- solve(t(X) %*% X) %*% t(X) %*% y
+
+```
+
+Verify the hat matrix constructed from this design matrix is the same as the hat matrix constructed from the design matrix with the intercept. (Fact: orthogonal projection matrices are unique).
+
+```{r}
+
+Hprime <- X%*%solve(t(X)%*%X)%*%t(X)
+expect_equal(Hprime,H)
+
+
+```
+
+Project the y vector onto each column of the X matrix and test if the sum of these projections is the same as yhat.
+
+```{r}
+
+yhatprime <- rep(0,length(yhat))
+
+for(j in 1:ncol(X)){
+  yhatprime <- yhatprime + (X[,j] %*% t(X[,j]) / normsqr(X[,j])) %*% y
+  
+}
+
+
+```
+
+Convert this design matrix into Q, an orthonormal matrix.
+
+```{r}
+
+
+
+v1<- X[,1]
+v2<- X[,2] - (v1 %*% t(v1) / normsqr(v1)) %*% X[,2]
+v3<- X[,3] - (v1 %*% t(v1) / normsqr(v1)) %*% X[,3] - (v2 %*% t(v2) / normsqr(v2)) %*% X[,3]
+q1<-v1/norm(v1)
+q2<-v2/norm(v2)
+q3<-v3/norm(v3)
+
+Q <- cbind(q1,q2,q3)  
+
+Q
+```
+
+Project the y vector onto each column of the Q matrix and test if the sum of these projections is the same as yhat.
+
+```{r}
+
+
+yhatprime <- rep(0,length(yhat))
+
+for(j in 1:ncol(X)){
+  yhatprime <- yhatprime + (Q[,j] %*% t(Q[,j]) / normsqr(Q[,j])) %*% y
+  
+}
+
+```
+
+Find the p=3 linear OLS estimates if Q is used as the design matrix using the `lm` method. Is the OLS solution the same as the OLS solution for X?
+
+```{r}
+
+mod <- lm(y ~ 0 + ., data.frame(X))
+
+modQ <- lm(y ~ 0 + ., data.frame(Q))
+
+#X and Q are the same except the length of the vectors in Q are length 1 (because X was orthogonal to begin with) 
+
+```
+
+Use the predict function and ensure that the predicted values are the same for both linear models: the one created with X  as its design matrix and the one created with Q as its design matrix.
+
+```{r}
+
+cbind(mod$fitted.values,modQ$fitted.values)
+
+```
+
+
+Clear the workspace and load the boston housing data and extract X and y. The dimensions are n = 506 and p = 13. Create a matrix that is (p + 1) x (p + 1) full of NA's. Label the columns the same columns as X. Do not label the rows. For the first row, find the OLS estimate of the y regressed on the first column only and put that in the first entry. For the second row, find the OLS estimates of the y regressed on the first and second columns of X only and put them in the first and second entries. For the third row, find the OLS estimates of the y regressed on the first, second and third columns of X only and put them in the first, second and third entries, etc. For the last row, fill it with the full OLS estimates.
+
+```{r}
+
+rm(list = ls())
+mydata <- MASS::Boston
+
+X <- mydata[,(1:13)]
+y <- mydata[,14]
+
+A <- matrix(NA, ncol=14,nrow=14)
+
+colnames(A) <- colnames(mydata)
+
+mod1 <- lm(y ~ X[,1], X)
+mod2 <- lm(y ~ X[,1] + X[,2], X)
+mod3 <- lm(y ~ X[,1] + X[,2] + X[,3], X)
+mod4 <- lm(y ~ X[,1] + X[,2] + X[,3] + X[,4], X)
+mod5 <- lm(y ~ X[,1] + X[,2] + X[,3] + X[,4] + X[,5], X)
+mod6 <- lm(y ~ X[,1] + X[,2] + X[,3] + X[,4] + X[,5] + X[,6], X)
+mod7 <- lm(y ~ X[,1] + X[,2] + X[,3] + X[,4] + X[,5] + X[,6] + X[,7], X)
+mod8 <- lm(y ~ X[,1] + X[,2] + X[,3] + X[,4] + X[,5] + X[,6] + X[,7] + X[,8], X)
+mod9 <- lm(y ~ X[,1] + X[,2] + X[,3] + X[,4] + X[,5] + X[,6] + X[,7] + X[,8] + X[,9], X)
+mod10<- lm(y ~ X[,1] + X[,2] + X[,3] + X[,4] + X[,5] + X[,6] + X[,7] + X[,8] + X[,9] + X[,10], X)
+mod11 <- lm(y ~ X[,1] + X[,2] + X[,3] + X[,4] + X[,5] + X[,6] + X[,7] + X[,8] + X[,9] + X[,10] + X[,11], X)
+mod12 <- lm(y ~ X[,1] + X[,2] + X[,3] + X[,4] + X[,5] + X[,6] + X[,7] + X[,8] + X[,9] + X[,10] + X[,11] + X[,12], X)
+mod13 <- lm(y ~ X[,1] + X[,2] + X[,3] + X[,4] + X[,5] + X[,6] + X[,7] + X[,8] + X[,9] + X[,10] + X[,11] + X[,12] + X[,13], X)
+
+
+A[1,1] <- mod1$coefficients[2]
+A[2,1:2] <- mod2$coefficients[2:3]
+A[3,1:3] <- mod3$coefficients[2:4]
+A[4,1:4] <- mod4$coefficients[2:5]
+A[5,1:5] <- mod5$coefficients[2:6]
+A[6,1:6] <- mod6$coefficients[2:7]
+A[7,1:7] <- mod7$coefficients[2:8]
+A[8,1:8] <- mod8$coefficients[2:9]
+A[9,1:9] <- mod9$coefficients[2:10]
+A[10,1:10] <- mod10$coefficients[2:11]
+A[11,1:11] <- mod11$coefficients[2:12]
+A[12,1:12] <- mod12$coefficients[2:13]
+A[13,1:13] <- mod13$coefficients[2:14]
+
+
+```
+
+Why are the estimates changing from row to row as you add in more predictors?
+
+The estimates are changing from row to row for one of two reasons, either the new predictor being added X[,k] is correlated somehow with an existing X[,j] and/or it is correlated with the response y.
+
+Create a vector of length p+1 and compute the R^2 values for each of the above models. 
+
+```{r}
+
+models <- list(mod1,mod2,mod3,mod4,mod5,mod6,mod7,mod8,mod9,mod10,mod11,mod12,mod13)
+rsquared <- c()
+for (k in models){
+  rsquared <- append(rsquared,values=summary(k)$r.squared)
+}
+
+rsquared
+
+```
+
+Is R^2 monotonically increasing? Why?
+
+Yes the R^2 is monotonically increasing. 
+
+As we add more predictor variables to the model, more of the variance between the data any ybar is being accounted for. The more parameters you add in general the "better the fit" more of the variance fromt the null model has an opportunity to be accounted for by the additional predictor variables . 
+
+Create a 2x2 matrix with the first column 1's and the next column iid normals. Find the absolute value of the angle (in degrees, not radians) between the two columns in absolute difference from 90 degrees.
+
+```{r}
+
+X = matrix(NA, nrow=2, ncol=2)
+X[1,1] <- 1
+X[2,1] <- 1
+X[1,2] <- rnorm(1)
+X[2,2] <- rnorm(1)
+
+abs((acos(t(X[,1]) %*% X[,2] / sqrt(sum(X[, 1]^2) * sum(X[, 2]^2))) * 180 / pi) - 90)
+
+
+
+
+```
+
+Repeat this exercise `Nsim = 1e5` times and report the average absolute angle.
+
+```{r}
+
+angles <- c()
+i <- 1
+
+repeat{
+X = matrix(NA, nrow=2, ncol=2)
+X[1,1] <- 1
+X[2,1] <- 1
+X[1,2] <- rnorm(1)
+X[2,2] <- rnorm(1)  
+angles <- append(angles, values=abs((acos(t(X[,1]) %*% X[,2] / sqrt(sum(X[, 1]^2) * sum(X[, 2]^2))) * 180 / pi) - 90)) 
+i <- i+1
+if (i > 1e5){break}
+}
+
+
+mean(angles)
+
+
+```
+
+Create a n x 2 matrix with the first column 1's and the next column iid normals. Find the absolute value of the angle (in degrees, not radians) between the two columns. For n = 10, 50, 100, 200, 500, 1000, report the average absolute angle over `Nsim = 1e5` simulations.
+
+```{r}
+
+
+
+for (j in c(10,50,100,200,500,1000)){
+  angles <- c()
+  i <- 1
+  repeat{
+    X = matrix(NA, nrow=j, ncol=2)
+    X[,1] <- 1
+    X[,2] <- rnorm(j)
+    angles <- append(angles, values=(acos(t(X[,1]) %*% X[,2] / sqrt(sum(X[, 1]^2) * sum(X[, 2]^2))) * 180 / pi)) 
+    i <- i+1
+      if (i > 1e5){
+      print(mean(angles))
+      break
+      }
+    }  
+} 
+
+
+
+
+```
+
+What is this absolute angle difference from 90 degrees converging to? Why does this make sense?
+
+The absolute value of difference from 90 degrees is converging to 0. Two vectors are orthogonal (seperated by 90 degrees) iff their dot product is zero. Since we are drawing from a normal(0,1) in the second column, over a large enough sample most of the values populating the second column vector should be 0 or very close. When we dot with the first column vector of 1's we are effectively asking what the sum of the second column vector values is - by law of large numbers it should be, and is extremely close to 0 as the length of the second vector increases.  
