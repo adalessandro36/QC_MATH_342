@@ -1,0 +1,159 @@
+---
+title: "Lab 6"
+author: "Your Name Here"
+output: pdf_document
+---
+
+#Visualization with the package ggplot2
+
+I highly recommend using the [ggplot cheat sheet](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf) as a reference resource. You will see questions that say "Create the best-looking plot". Among other things you may choose to do, remember to label the axes using real English, provide a title and subtitle. You may want to pick a theme and color scheme that you like and keep that constant throughout this lab. The default is fine if you are running short of time.
+
+Load up the `GSSvocab` dataset in package `carData` as `X` and drop all observations with missing measurements. This will be a very hard visualization exercise since there is not a good model for vocab.
+
+```{r}
+
+library(ggplot2)
+pacman::p_load(carData)
+X = carData::GSSvocab
+X = na.omit(X)
+```
+
+Briefly summarize the documentation on this dataset. What is the data type of each variable? What do you think is the response variable the collectors of this data had in mind?
+
+The dataset contains information from a observational study looking at scores on a vocabulary test given to people of different ages, sexes, education level and nativity status across a number of years. Year is continuous, age is continuous, gender is categorical/nominal, native born is binary (categorical/nominal), ageGroup is categorical/ordinal, educGroup is categorical/ordinal, vocab is continuous, education is continuous. The collectors of this data were probably interested in measuring some level of intelligence or literacy. 
+
+Create two different plots and identify the best-looking plot you can to examine the `age` variable. Save the best looking plot as an appropriately-named PDF.
+
+```{r}
+
+base = ggplot(X ,aes(x=age))
+
+base + geom_density()
+base + geom_freqpoly()
+
+base + geom_histogram(color = 'black',fill='firebrick', alpha=.75) + theme_bw() + labs(title='Age Frequency', subtitle= 'GSS Vocab data set')
+
+ggsave('bestplot.PDF',width=10,height=10)
+```
+
+Create two different plots and identify the best looking plot you can to examine the `vocab` variable. Save the best looking plot as an appropriately-named PDF.
+
+```{r}
+
+X$vocab = factor(X$vocab)
+base = ggplot(X, aes(vocab))
+
+base + geom_dotplot()
+
+base + geom_bar(fill = 'firebrick', color = 'black', alpha = .75) + theme_bw() + labs(title ='Vocab Score Frequency', subtitle='GSS Vocab data set')
+
+ggsave('bestplot2.PDF',width=10,height=10) 
+
+
+```
+
+Create the best-looking plot you can to examine the `ageGroup` variable by `gender`. Does there appear to be an association? There are many ways to do this.
+
+Yes it looks like there are more women in each age group. 
+
+
+```{r}
+
+
+ggplot(X) + geom_jitter(aes(x = ageGroup, y=gender), size = 1 , shape = 20)
+
+ggplot(X) + geom_count(aes(x = ageGroup, y=gender), color='firebrick', shape=18, alpha = .75) + theme_bw() + labs(title='M/F Breakdown by Age Group',subtitle='GSS Vocab data set')
+
+```
+
+Create the best-looking plot you can to examine the `vocab` variable by `age`. Does there appear to be an association?
+
+Yes the people scoring the highest on the test appear to have a higher average age and the age range itself appears tighter for the people getting 10/10. 
+
+```{r}
+X$vocab = factor(X$vocab)
+base = ggplot(X, aes(vocab))
+ggplot(X) + geom_boxplot(aes(x=vocab,y=age), fill='firebrick', alpha=.75) + theme_bw() + labs(title='Vocab Score & Age Group', subtitle='GSS Vocab data set')
+  
+
+```
+
+Add an estimate of $f(x)$ using the smoothing geometry to the previous plot. Does there appear to be an association now?
+
+Yes there appears to be a hinge point at scores over 7. 
+
+```{r}
+X = carData::GSSvocab
+X = na.omit(X)
+
+ggplot(X) + geom_jitter(aes(x=vocab,y=age), color = 'firebrick', alpha=.25) +
+  geom_smooth(aes(x=vocab,y=age))
+
+summary(lm(vocab ~ age, X))
+```
+
+Using the plot from the previous question, create the best looking plot overloading with variable `gender`. Does there appear to be an interaction of `gender` and `age`?
+
+Yes for higher scores, 8+ their looks like a split in gender across age groups i.e. mostly younger men + older women make up the population with the highest vocab scores.  
+
+```{r}
+X = carData::GSSvocab
+X = na.omit(X)
+
+#ggplot(X) + geom_jitter(aes(x=vocab,y=age)) + geom_point(aes(x=vocab,y=age, shape=gender, color=gender))
+
+
+ggplot(X) + geom_jitter(aes(x=vocab,y=age, color=gender),size=.9) + theme_light() +
+  geom_smooth(aes(x=vocab,y=age)) 
+
+```
+
+
+Using the plot from the previous question, create the best looking plot overloading with variable `nativeBorn`. Does there appear to be an interaction of `nativeBorn` and `age`?
+
+It appears that there are far more native born participants in the study in general compared to immigrants. It is hard to tell if there is any relationship with age, given the current plot setup. 
+
+```{r}
+
+ggplot(X) + geom_jitter(aes(x=vocab,y=age, color=gender, shape = nativeBorn), size=.95) +
+  geom_smooth(aes(x=vocab,y=age))
+ggsave('bestplot3.pdf',height=6,width=6)
+
+```
+
+Create two different plots and identify the best-looking plot you can to examine the `vocab` variable by `educGroup`. Does there appear to be an association?
+
+Yes participants with an education beyond 15 years have a higher median score on the vocab survey. 
+
+```{r}
+
+
+ggplot(X) + geom_col(aes(x=educGroup, y=vocab), color = 'firebrick') 
+
+ggplot(X) + geom_boxplot(aes(x=educGroup, y=vocab), fill='firebrick', alpha=.75) + theme_bw() + labs(title='Vocab Scores by Education Group',subtitle='GSS Vocab data set')
+
+
+```
+
+Using the best-looking plot from the previous question, create the best looking overloading with variable `gender`. Does there appear to be an interaction of `gender` and `educGroup`?
+
+```{r}
+
+ggplot(X) + geom_boxplot(aes(x=educGroup, y=vocab, fill =gender), alpha=.75) + theme_bw() + labs(title='Vocab Scores by Education Group & Gender',subtitle='GSS Vocab data set') + scale_fill_manual(values=c('firebrick','grey'))
+
+
+```
+
+Using facets, examine the relationship between `vocab` and `ageGroup`. You can drop year level `(Other)`. Are we getting dumber?
+
+It depends on the age group. Older people (60+) seem to be doing much better while 30-39 year olds seem to be dipping. 
+
+```{r}
+
+
+
+ggplot(X) + geom_col(aes(x=ageGroup,y=vocab, color=ageGroup)) + 
+  facet_grid(cols=vars(year)) +
+  theme(axis.ticks.x=element_blank(), axis.text.x=element_blank(), axis.title.x=element_blank(), legend.position = 'bottom')
+
+```
